@@ -38,6 +38,34 @@ allow-direct-references = true
 [project.scripts]
 wotis = "wotis.cli:main"
 
+# Where wotis reads its inputs and writes generated files in this repository.
+# Paths are relative to this file. Other repositories that use wotis add their own table.
+[tool.wotis]
+schema = "resources/schemas/thing_description.yaml"
+template = "resources/index.template.html"
+snippets = "resources/snippets"
+glossary = "resources/xref/glossary.yaml"
+static_figures = "resources/static/visualization"
+extra_asserts = "resources/upstream/extra-asserts.html"
+tm_schema = "resources/upstream/schemas/tm-json-schema-validation.json"
+
+# Spec section id -> LinkML schema whose classes are rendered into it, in spec order.
+[tool.wotis.sections]
+sec-core-vocabulary-definition = "resources/schemas/thing_description.yaml"
+sec-data-schema-vocabulary-definition = "resources/schemas/jsonschema.yaml"
+sec-security-vocabulary-definition = "resources/schemas/wot_security.yaml"
+sec-hypermedia-vocabulary-definition = "resources/schemas/hypermedia.yaml"
+
+[tool.wotis.outputs]
+jsonschema = "resources/gens/jsonschema/jsonschema.json"
+context = "resources/gens/jsonldcontext/context.jsonld"
+shacl = "resources/gens/shacl/shapes.shacl.ttl"
+owl = "resources/gens/owl/ontology.owl.ttl"
+linkml = "resources/gens/linkml/linkml.yaml"
+diagrams = "resources/gens/static/visualization"
+spec = "resources/gens/index.html"
+assertions = "resources/gens/assertions/assertions.csv"
+
 [dependency-groups]
 dev = [
     "pytest>=8.0",
