@@ -61,7 +61,7 @@ Note: The [Testing](#testing) section covers the checks and controls that can be
 The source models are maintained manually by the WoT Working Group:
 
 - **WoT LinkML schema modules** — the root module [`td-linkml`](resources/schemas/thing_description.yaml) imports [`hctl-linkml`](resources/schemas/hypermedia.yaml), [`wotsec-linkml`](resources/schemas/wot_security.yaml), and [`jsonschema-linkml`](resources/schemas/jsonschema.yaml)
-- **Static ReSpec template and Jinja templates** — `resources/index.template.html` and `resources/jinja_templates/`
+- **Static ReSpec template** — `resources/index.template.html` (the Jinja templates that render the vocabulary tables are part of the tool, in `src/wotis/templates/`)
 - **TD/TM JSON snippets** — example snippets with `_snippets.yaml` metadata
 
 From these source models, the generation pipeline has two paths:
