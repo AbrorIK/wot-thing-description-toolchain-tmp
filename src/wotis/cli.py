@@ -5,8 +5,8 @@ import yaml
 
 from pathlib import Path
 
-from src.wotis import YAML_SCHEMA_PATH, ASSERTION_PATH, EXTRA_ASSERTS_PATH
-from src.wotis.generators import run_pipeline
+from wotis import YAML_SCHEMA_PATH, ASSERTION_PATH, EXTRA_ASSERTS_PATH
+from wotis.generators import run_pipeline
 
 
 input_option = click.option('-i', '--input_schema',
