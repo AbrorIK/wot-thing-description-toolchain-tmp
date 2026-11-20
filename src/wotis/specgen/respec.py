@@ -3,8 +3,13 @@ from __future__ import annotations
 import logging
 import re
 
+from importlib.resources import files
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from pathlib import Path
+
+# The Jinja templates are part of the tool, not of the spec content, so they ship
+# inside the wotis package and are found relative to it, wherever it is installed.
+PACKAGE_TEMPLATES_DIR = Path(str(files("wotis") / "templates"))
 
 _SNIPPET_PLACEHOLDER_RE = re.compile(r"%snippet\('([^']+)'\)%")
 

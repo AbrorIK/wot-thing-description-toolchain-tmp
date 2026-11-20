@@ -10,13 +10,18 @@ from linkml_runtime.utils.schemaview import SchemaView
 from pathlib import Path
 from typing import Callable, Dict, List, Optional
 
-from ..specgen.config import Config
+from ..config import ProjectConfig
 from ..specgen.bikeshed_processor import process_fragments
-from ..specgen.respec import build_jinja_env, assemble
+from ..specgen.respec import build_jinja_env, assemble, PACKAGE_TEMPLATES_DIR
 from ..specgen.tables import collect_slot_rows
 from ..specgen.assertions import html_assertions_to_csv
 
-cfg = Config.from_resources_dir(Path("resources"), placeholder="%s")
+# Marker in the ReSpec template that the rendered core vocabulary section replaces.
+CORE_SCHEMA_PLACEHOLDER = "%s"
+
+# Transitional: TD snippets are still checked against the TD 2.0 schema copied from
+# upstream. A later step validates them against the JSON Schema generated in the same run.
+UPSTREAM_TD_SCHEMA = Path("resources/upstream/schemas/td20-json-schema-validation.json")
 
 
 def _annotation_value(annotations: dict, key: str):
@@ -433,14 +438,7 @@ def render_explicit_assertion_annotation(
     return "\n".join(rendered)
 
 
-def generate_respec_spec(
-    input_path: Path,
-    respec_template_path: Path,
-    final_spec_path: Path,
-    core_schema_placeholder: str,
-    assertions_csv_path: Optional[Path] = None,
-    extra_asserts_path: Optional[Path] = None,
-) -> None:
+def generate_respec_spec(config: ProjectConfig) -> None:
     """
     Generate the ReSpec-compatible HTML document from the LinkML schema.
 
@@ -451,17 +449,16 @@ def generate_respec_spec(
       • Renders each class section with Jinja templates
       • Injects the resulting HTML into the ReSpec index template
 
-    Args:
-        input_path: Path to the root LinkML YAML schema file.
-        respec_template_path: Path to the ReSpec HTML template (index.template.html).
-        final_spec_path: Path to write the final, assembled HTML output.
-        core_schema_placeholder: The placeholder string inside the ReSpec
-            template to replace.
-        assertions_csv_path: If provided, write an assertions.csv compatible
-            with the WoT TD Test suite (extractFile.js output).
-        extra_asserts_path: If provided, merge additional assertions from
-            this HTML file into the assertion inventory.
+    Inputs and outputs come from *config*: ``schema`` (root LinkML schema),
+    ``template`` (ReSpec template), ``sections`` (section id -> schema),
+    ``snippets``, ``glossary``, ``outputs.spec`` (final HTML) and
+    ``outputs.assertions`` (assertions.csv for the WoT TD test suite,
+    merged with ``extra_asserts`` when set).
     """
+    input_path = config.schema
+    respec_template_path = config.template
+    final_spec_path = config.outputs.spec
+    core_schema_placeholder = CORE_SCHEMA_PLACEHOLDER
     try:
         sv = SchemaView(input_path, merge_imports=True)
     except yaml.YAMLError as e:
@@ -469,7 +466,7 @@ def generate_respec_spec(
         return
 
     try:
-        env = build_jinja_env(cfg.jinja_templates)
+        env = build_jinja_env(PACKAGE_TEMPLATES_DIR)
         section_tpl = env.get_template("class_section.jinja2")
     except (exceptions.TemplateNotFound, FileNotFoundError) as e:
         logging.error("Template error: %s", e, exc_info=True)
@@ -491,7 +488,9 @@ def generate_respec_spec(
         return text
 
     file_to_classes: Dict[str, List[str]] = {}
-    for section_path in cfg.section_schemas.values():
+    # Section schema file name -> its default_prefix (td, hctl, ...), used for term IRIs in the tables.
+    file_to_prefix: Dict[str, str] = {}
+    for section_path in config.sections.values():
         try:
             if not section_path.exists():
                 logging.error(
@@ -502,6 +501,7 @@ def generate_respec_spec(
                 continue
             section_sv = SchemaView(section_path, merge_imports=False)
             file_to_classes[section_path.name] = list(section_sv.all_classes().keys())
+            file_to_prefix[section_path.name] = section_sv.schema.default_prefix or section_path.stem
         except (yaml.YAMLError, IOError) as e:
             logging.error(
                 "Failed to load section schema %s due to: %s. Skipping section.",
@@ -513,17 +513,17 @@ def generate_respec_spec(
     # Identify all non-core classes (defined outside the primary TD schema)
     non_core_classes: set[str] = set()
     try:
-        core_section_id = next(iter(cfg.section_schemas.keys()))
+        core_section_id = next(iter(config.sections.keys()))
     except StopIteration:
         core_section_id = None
 
-    for section_id, section_path in cfg.section_schemas.items():
+    for section_id, section_path in config.sections.items():
         if section_id != core_section_id:
             non_core_classes.update(file_to_classes.get(section_path.name, []))
     sections_content: List[str] = []
-    for section_id, section_path in cfg.section_schemas.items():
+    for section_id, section_path in config.sections.items():
         section_classes_to_render = file_to_classes.get(section_path.name, [])
-        schema_prefix = cfg.schema_prefixes.get(section_path.stem, section_path.stem)
+        schema_prefix = file_to_prefix.get(section_path.name, section_path.stem)
         sections_html: List[str] = []
         if section_id == core_section_id and core_section_id is not None:
             section_classes_to_render = [
@@ -607,34 +607,36 @@ def generate_respec_spec(
         section_html_fragment = "\n\n".join(sections_html)
         sections_content.append(section_html_fragment)
 
-    section_ids = list(cfg.section_schemas.keys())
-    sections_content = process_fragments(section_ids, sections_content, cfg.glossary_path)
+    section_ids = list(config.sections.keys())
+    sections_content = process_fragments(section_ids, sections_content, config.glossary)
 
     rendered_template = None
-    if cfg.snippets_dir.is_dir():
+    snippets_dir = config.snippets
+    if snippets_dir is not None and snippets_dir.is_dir():
         from ..specgen.snippets import validate_all_snippets
 
-        schemas_dir = cfg.resources_path / "upstream" / "schemas"
-        td_schema_path = schemas_dir / "td20-json-schema-validation.json"
-        tm_schema_path = schemas_dir / "tm-json-schema-validation.json"
-        snippet_errors = validate_all_snippets(
-            cfg.snippets_dir,
-            td_schema_path,
-            tm_schema_path,
-        )
-        if snippet_errors:
-            for err in snippet_errors:
-                logging.error("Snippet validation error: %s", err)
-            logging.error(
-                "Snippet validation failed with %d error(s) — continuing", len(snippet_errors)
+        td_schema_path = config.root / UPSTREAM_TD_SCHEMA
+        tm_schema_path = config.tm_schema
+        if td_schema_path.is_file() and tm_schema_path is not None:
+            snippet_errors = validate_all_snippets(
+                snippets_dir,
+                td_schema_path,
+                tm_schema_path,
             )
+            if snippet_errors:
+                for err in snippet_errors:
+                    logging.error("Snippet validation error: %s", err)
+                logging.error(
+                    "Snippet validation failed with %d error(s) — continuing", len(snippet_errors)
+                )
+        else:
+            logging.warning("Snippet validation skipped: needs %s and tm_schema in [tool.wotis]", UPSTREAM_TD_SCHEMA)
 
         rendered_template = respec_template_path.read_text(encoding="utf-8")
-        if cfg.snippets_dir and cfg.snippets_dir.is_dir():
-            from ..specgen.respec import process_snippet_placeholders
-            rendered_template = process_snippet_placeholders(
-                rendered_template, cfg.snippets_dir, cfg.jinja_templates
-            )
+        from ..specgen.respec import process_snippet_placeholders
+        rendered_template = process_snippet_placeholders(
+            rendered_template, snippets_dir, PACKAGE_TEMPLATES_DIR
+        )
 
     assemble(
         respec_template_path,
@@ -644,8 +646,8 @@ def generate_respec_spec(
         template_content=rendered_template,
     )
 
-    if assertions_csv_path is not None:
+    if config.outputs.assertions is not None:
         try:
-            html_assertions_to_csv(final_spec_path, assertions_csv_path, extra_asserts_path)
+            html_assertions_to_csv(final_spec_path, config.outputs.assertions, config.extra_asserts)
         except Exception as exc:
             logging.error("Assertion CSV generation failed: %s", exc, exc_info=True)

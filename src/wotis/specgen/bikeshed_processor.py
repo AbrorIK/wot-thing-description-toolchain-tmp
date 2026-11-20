@@ -27,8 +27,8 @@ Die On: nothing
 SECTION_MARKER_ATTR = "data-wotis-section"
 
 
-def build_anchors_block(glossary_path: Path) -> str:
-    if not glossary_path.exists():
+def build_anchors_block(glossary_path: Path | None) -> str:
+    if glossary_path is None or not glossary_path.exists():
         return ""
     data = yaml.safe_load(glossary_path.read_text(encoding="utf-8")) or {}
     terms = data.get("terms") or {}
@@ -78,7 +78,7 @@ def build_anchors_block(glossary_path: Path) -> str:
 def process_fragments(
     section_ids: list[str],
     fragments: list[str],
-    glossary_path: Path,
+    glossary_path: Path | None,
 ) -> list[str]:
     if len(section_ids) != len(fragments):
         raise ValueError(

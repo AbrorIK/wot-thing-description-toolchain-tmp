@@ -3,17 +3,22 @@ import logging
 import sys
 import yaml
 
+from dataclasses import replace
 from pathlib import Path
 
-from wotis import YAML_SCHEMA_PATH, ASSERTION_PATH, EXTRA_ASSERTS_PATH
+from wotis.config import ConfigError, load_config
 from wotis.generators import run_pipeline
 
 
+config_option = click.option('-c', '--config',
+                             type=click.Path(path_type=Path, dir_okay=False),
+                             default=Path("pyproject.toml"),
+                             show_default=True,
+                             help="pyproject.toml whose [tool.wotis] table lists inputs and outputs.")
 input_option = click.option('-i', '--input_schema',
-                            type=str,
-                            show_default=True,
-                            help="Path to the input schema specified as LinkML yaml.",
-                            default=YAML_SCHEMA_PATH)
+                            type=click.Path(path_type=Path, dir_okay=False),
+                            default=None,
+                            help="Root LinkML schema. Overrides [tool.wotis] schema.")
 docs_option = click.option('-d',
                              '--generate_docs',
                              type=bool,
@@ -23,16 +28,14 @@ docs_option = click.option('-d',
                              help="Boolean for generating the final TD Respec-based HTML specification.")
 assertions_csv_option = click.option('--assertions-csv',
                              type=click.Path(path_type=Path, dir_okay=False),
-                             default=ASSERTION_PATH,
-                             show_default=True,
-                             help="Path for the storing assertion inventory CSV. "
-                                  "Defaults to resources/gens/assertions/assertions.csv.")
+                             default=None,
+                             help="Where to write the assertion inventory CSV. "
+                                  "Overrides [tool.wotis.outputs] assertions.")
 extra_asserts_option = click.option('--extra-asserts',
                              type=click.Path(path_type=Path, dir_okay=False, exists=False),
-                             default=EXTRA_ASSERTS_PATH,
-                             show_default=True,
-                             help="Path to extra-asserts.html with additional testing assertions "
-                                  "to merge into the assertion inventory.")
+                             default=None,
+                             help="extra-asserts.html with additional testing assertions to merge "
+                                  "into the assertion inventory. Overrides [tool.wotis] extra_asserts.")
 
 
 @click.group()
@@ -57,26 +60,36 @@ def main(verbose: int, quiet: bool):
 
 
 @main.command()
+@config_option
 @input_option
 @docs_option
 @assertions_csv_option
 @extra_asserts_option
-def generate_wot_resources(input_schema: str, generate_docs: bool, assertions_csv: Path, extra_asserts: Path):
+def generate_wot_resources(config: Path, input_schema: Path | None, generate_docs: bool,
+                           assertions_csv: Path | None, extra_asserts: Path | None):
     """
     Generating WoT resources (RDF, JSON-LD Context, SHACL Shapes, and JSON Schema)
     and the final Respec specification from LinkML schemas.
     """
-    input_path = Path(input_schema)
-    if not input_path.exists():
-        raise FileNotFoundError(f"Cannot find input LinkML schema file {input_schema}.")
+    try:
+        project = load_config(config)
+    except ConfigError as e:
+        logging.error(f"Invalid wotis configuration: {e}")
+        sys.exit(1)
+
+    # Command-line options win over [tool.wotis]; relative paths are taken from the current directory.
+    if input_schema is not None:
+        project = replace(project, schema=input_schema.resolve())
+    if extra_asserts is not None:
+        project = replace(project, extra_asserts=extra_asserts.resolve())
+    if assertions_csv is not None:
+        project = replace(project, outputs=replace(project.outputs, assertions=assertions_csv.resolve()))
+
+    if not project.schema.exists():
+        raise FileNotFoundError(f"Cannot find input LinkML schema file {project.schema}.")
 
     try:
-        run_pipeline(
-            input_path,
-            generate_docs=generate_docs,
-            assertions_csv_path=assertions_csv,
-            extra_asserts_path=extra_asserts,
-        )
+        run_pipeline(project, generate_docs=generate_docs)
     except yaml.YAMLError as e:
         logging.error(f"LinkML schema validation failed: {e}")
         sys.exit(1)

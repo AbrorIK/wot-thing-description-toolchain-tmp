@@ -144,7 +144,7 @@ def extract_all_table_assertions(
     contains RFC 2119 keywords.
 
     section_schemas:
-        Ordered dict of section_id → schema Path (from Config.section_schemas).
+        Ordered dict of section_id → schema Path (from ProjectConfig.sections).
     prefix_map:
         Maps schema file stem → short ID prefix (e.g. "thing_description" → "td").
     """
