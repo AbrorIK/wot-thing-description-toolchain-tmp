@@ -1,0 +1,82 @@
+{
+  "@context": [
+    "https://www.w3.org/2019/wot/td/v1",
+    {
+      "modv": "https://www.w3.org/2019/wot/modbus#"
+    }
+  ],
+  "title": "ModbusPLC",
+  "description": "An industrial machine, retrofitted to be IoT capable.",
+  "id": "uri:dev:ModbusTCPThing",
+  "securityDefinitions": {
+    "nosec_sc": {
+      "scheme": "nosec"
+    }
+  },
+  "security": "nosec_sc",
+  "base": "modbus+tcp://192.168.178.32:502/1/",
+  "properties": {
+    "limitSwitch1": {
+      "title": "downLimitSwitch",
+      "type": "boolean",
+      "description": "Limit switch moving downwards",
+      "forms": [
+        {
+          "op": "readproperty",
+          "href": "10003",
+          "modv:function": "readDiscreteInput",
+          "contentType": "application/octet-stream"
+        }
+      ]
+    },
+    "limitSwitch2": {
+      "title": "forwardLimitSwitch",
+      "type": "boolean",
+      "description": "Limit Switch moving forward",
+      "forms": [
+        {
+          "op": "readproperty",
+          "href": "10002",
+          "modv:function": "readDiscreteInput",
+          "contentType": "application/octet-stream"
+        }
+      ]
+    },
+    "moveDown": {
+      "title": "moveDown",
+      "type": "boolean",
+      "description": "Down Motor Status (single coil). PLC output, can be written to control the motor.",
+      "forms": [
+        {
+          "op": [
+            "writeproperty",
+            "observeproperty",
+            "readproperty"
+          ],
+          "href": "6",
+          "modv:entity": "Coil",
+          "modv:pollingTime": 100,
+          "contentType": "application/octet-stream"
+        }
+      ]
+    },
+    "moveForward": {
+      "title": "moveForward",
+      "type": "boolean",
+      "description": "Forward Motor Status (single coil). PLC output, can be written to control the motor.",
+      "forms": [
+        {
+          "op": [
+            "writeproperty",
+            "observeproperty",
+            "readproperty"
+          ],
+          "href": "3",
+          "modv:entity": "Coil",
+          "modv:pollingTime": 100,
+          "contentType": "application/octet-stream"
+        }
+      ]
+    }
+  }
+}

@@ -17,6 +17,10 @@ STATIC_VISUALIZATION_PATH = RESOURCES_PATH / 'static' / 'visualization'
 CONFIG = Config.from_resources_dir(RESOURCES_PATH, placeholder="%s")
 
 YAML_SCHEMA_PATH = SCHEMA_PATH / 'thing_description.yaml'
+BINDINGS_SCHEMA_PATH = SCHEMA_PATH / 'bindings'
+BINDINGS_GENS_PATH = GENS_PATH / 'bindings'
+# Published TD 1.1 JSON Schema that W3C binding schemas reference through anyOf.
+TD11_SCHEMA_URI = 'https://www.w3.org/2022/wot/td-schema/v1.1'
 GENERATED_LINKML_SCHEMA = GENS_PATH / 'linkml/linkml.yaml'
 RESPEC_TEMPLATE_PATH = RESOURCES_PATH / 'index.template.html'
 FINAL_SPEC_PATH = GENS_PATH / 'index.html'
@@ -33,6 +37,7 @@ __all__ = [
     "RESOURCES_PATH", "SCHEMA_PATH", "GENS_PATH",
     "JINJA_TEMPLATE_DIR", "GLOSSARY_PATH", "SNIPPETS_DIR",
     "CORE_SCHEMA_PLACEHOLDER", "YAML_SCHEMA_PATH",
+    "BINDINGS_SCHEMA_PATH", "BINDINGS_GENS_PATH", "TD11_SCHEMA_URI",
     "GENERATED_LINKML_SCHEMA", "RESPEC_TEMPLATE_PATH", "FINAL_SPEC_PATH",
     "GENERATORS", "ASSERTION_PATH", "EXTRA_ASSERTS_PATH",
     "STATIC_VISUALIZATION_PATH",

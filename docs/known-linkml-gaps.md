@@ -63,6 +63,12 @@ The JSON Schema postprocessor (`src/wotis/postprocessors/jsonschema_postprocesso
 **Workaround:** `jsonschema_postprocessor.py` → `_fix_additional_props_anyof()`, keeps only the string form for a key + one string value class
 **LinkML issue:** none found (2026-09-09)
 
+### 13. Binding schemas cannot be composed with the TD schema
+**Symptom:** A W3C binding schema (e.g. `modbus.schema.json`, shaped by `bindings/protocols/template.schema.json` in w3c/wot-binding-templates) validates a whole TD: `anyOf` with an external `$ref` to the TD schema, the binding Form applied to every Form under `properties`/`actions`/`events`, an `@context` `contains` check for the binding prefix, all in draft-07 with `definitions`. The generator only emits the binding Form, in draft 2019-09 with `$defs`, `$id` and enum `$ref`s, and drops `deprecated`.
+**Artifact:** `resources/gens/bindings/<binding>/<binding>.schema.json`
+**Workaround:** `binding_jsonschema_postprocessor.py` → `compose_binding_td_schema()`; reuses `_resolve_refs()` and `_clean_metadata()` from `jsonschema_postprocessor.py`, takes the namespace from the schema's `default_prefix`, emits `deprecated` as `$comment`
+**LinkML issue:** none — out of scope for a generic generator (2026-11-18)
+
 ---
 
 ## SHACL Generator

@@ -1,0 +1,28 @@
+{
+  "@context": [
+    "https://www.w3.org/2022/wot/td/v1.1",
+    {
+      "saref": "https://w3id.org/saref#"
+    }
+  ],
+  "title": "Temperature Sensor",
+  "securityDefinitions": {
+    "nosec_sc": {
+      "scheme": "nosec"
+    }
+  },
+  "security": "nosec_sc",
+  "properties": {
+    "temperature": {
+      "type": "integer",
+      "forms": [
+        {
+          "href": "modbus+tcp://192.168.1.50:502/1/100",
+          "op": "readproperty",
+          "modv:entity": "HoldingRegister",
+          "modv:type": "xsd:unsignedShort"
+        }
+      ]
+    }
+  }
+}

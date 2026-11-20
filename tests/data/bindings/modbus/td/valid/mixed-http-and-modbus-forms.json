@@ -1,0 +1,45 @@
+{
+  "@context": [
+    "https://www.w3.org/2022/wot/td/v1.1",
+    {
+      "modv": "https://www.w3.org/2019/wot/modbus#"
+    }
+  ],
+  "title": "Pump",
+  "securityDefinitions": {
+    "nosec_sc": {
+      "scheme": "nosec"
+    }
+  },
+  "security": "nosec_sc",
+  "properties": {
+    "pressure": {
+      "type": "number",
+      "forms": [
+        {
+          "href": "https://pump.example.com/pressure",
+          "op": "readproperty",
+          "contentType": "application/json"
+        },
+        {
+          "href": "modbus+tcp://192.168.1.50:502/1/30001?quantity=2",
+          "op": "readproperty",
+          "modv:entity": "InputRegister",
+          "modv:type": "xsd:float",
+          "modv:mostSignificantWord": false
+        }
+      ]
+    }
+  },
+  "actions": {
+    "start": {
+      "forms": [
+        {
+          "href": "modbus+tcp://192.168.1.50:502/1/1",
+          "op": "invokeaction",
+          "modv:function": "writeSingleCoil"
+        }
+      ]
+    }
+  }
+}

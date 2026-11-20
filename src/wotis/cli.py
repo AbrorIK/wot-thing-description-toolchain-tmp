@@ -5,8 +5,10 @@ import yaml
 
 from pathlib import Path
 
-from src.wotis import YAML_SCHEMA_PATH, ASSERTION_PATH, EXTRA_ASSERTS_PATH
+from src.wotis import (YAML_SCHEMA_PATH, ASSERTION_PATH, EXTRA_ASSERTS_PATH,
+                       BINDINGS_SCHEMA_PATH, BINDINGS_GENS_PATH, TD11_SCHEMA_URI)
 from src.wotis.generators import run_pipeline
+from src.wotis.generators.bindings import write_binding_schemas
 
 
 input_option = click.option('-i', '--input_schema',
@@ -82,6 +84,37 @@ def generate_wot_resources(input_schema: str, generate_docs: bool, assertions_cs
         sys.exit(1)
     except Exception as e:
         logging.error(f"An unexpected error occurred during resource generation: {e}", exc_info=True)
+        sys.exit(1)
+
+
+@main.command()
+@click.option('-i', '--input_schema',
+              type=click.Path(path_type=Path, dir_okay=False, exists=True),
+              default=BINDINGS_SCHEMA_PATH / 'modbus.yaml',
+              show_default=True,
+              help="Path to the binding LinkML schema.")
+@click.option('--form-class',
+              default='ModbusForm',
+              show_default=True,
+              help="LinkML class holding the binding-specific Form terms.")
+@click.option('--td-schema-uri',
+              default=TD11_SCHEMA_URI,
+              show_default=True,
+              help="TD JSON Schema referenced through anyOf by the TD-level binding schema.")
+@click.option('-o', '--output-dir',
+              type=click.Path(path_type=Path, file_okay=False),
+              default=None,
+              help="Output directory. Defaults to resources/gens/bindings/<schema name>/.")
+def generate_binding_schema(input_schema: Path, form_class: str, td_schema_uri: str, output_dir: Path | None):
+    """
+    Generating the JSON Schemas of a protocol binding (pilot: Modbus): form.schema.json for the
+    binding Form terms and <schema name>.schema.json for a whole TD using them.
+    """
+    try:
+        write_binding_schemas(input_schema, form_class, td_schema_uri,
+                              output_dir or BINDINGS_GENS_PATH / input_schema.stem)
+    except Exception as e:
+        logging.error(f"Binding schema generation failed: {e}", exc_info=True)
         sys.exit(1)
 
 

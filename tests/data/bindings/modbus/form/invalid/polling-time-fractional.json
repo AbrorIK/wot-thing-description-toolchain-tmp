@@ -1,0 +1,1 @@
+{ "href": "modbus+tcp://127.0.0.1:60000/1/1", "op": ["observeproperty"], "modv:entity": "Coil", "modv:pollingTime": 1.5 }

@@ -20,6 +20,14 @@ their own fixtures and do not require generated output.
   valid and invalid TD sample in `data/`.
 - `test_td_crosscheck.py` compares the generated schema's validation verdicts
   with the W3C reference schemas in `resources/upstream/schemas/`.
+- `test_modbus_binding_schema.py` generates the Modbus Form JSON Schema from
+  `resources/schemas/bindings/modbus.yaml`, validates the Form samples in
+  `data/bindings/modbus/form/`, and compares each verdict with the published
+  schema in `resources/upstream/bindings/modbus/`.
+- `test_modbus_binding_td_schema.py` composes the TD-level Modbus schema from
+  the same model, validates the complete TDs in `data/bindings/modbus/td/`
+  (TD 1.1 schema resolved offline), and checks verdicts and structure against
+  the PR #508 schema in `resources/upstream/bindings/modbus/`.
 - `test_golden_diff.py` detects changes to the generated JSON Schema, JSON-LD
   context, and generated specification sections.
 - `test_golden_form_structure.py`, `test_spec_content_rendering.py`, and

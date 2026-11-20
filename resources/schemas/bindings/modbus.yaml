@@ -1,0 +1,342 @@
+id: https://www.w3.org/2019/wot/modbus
+name: modbus
+title: Modbus Binding Vocabulary
+description: >-
+  LinkML schema for the vocabulary of the W3C Web of Things (WoT) Modbus Binding.
+  It defines the Modbus-specific terms that may appear in a Thing Description Form,
+  the terms carried in the Modbus URL, and their permitted values.
+  Reconciled against the Modbus Binding specification, modbus.schema.json, ontology.ttl
+  and context.jsonld in w3c/wot-binding-templates; see docs/bindings/modbus-vocabulary-inventory.md
+  for every decision and every open question.
+see_also:
+  - https://w3c.github.io/wot-binding-templates/bindings/protocols/modbus/
+  - https://github.com/w3c/wot-binding-templates/pull/508
+
+prefixes:
+  linkml: https://w3id.org/linkml/
+  modv: https://www.w3.org/2019/wot/modbus#
+  hctl: https://www.w3.org/2019/wot/hypermedia#
+  xsd: http://www.w3.org/2001/XMLSchema#
+default_prefix: modv
+default_range: string
+imports:
+  - linkml:types
+
+subsets:
+  form_terms:
+    description: >-
+      Terms that appear as name-value pairs of a Form in a Thing Description.
+      Corresponds to the "Form terms" table of the specification.
+  url_terms:
+    description: >-
+      Terms carried in the Modbus URL of the Form's href rather than as Form name-value pairs.
+      Corresponds to the "URL terms" table of the specification.
+
+types:
+  unsignedByte:
+    description: An integer between 0 and 255.
+    typeof: integer
+    uri: xsd:unsignedByte
+  unsignedShort:
+    description: An integer between 0 and 65535.
+    typeof: integer
+    uri: xsd:unsignedShort
+  unsignedInt:
+    description: An integer between 0 and 4294967295.
+    typeof: integer
+    uri: xsd:unsignedInt
+
+classes:
+  ModbusForm:
+    description: >-
+      The Modbus-specific name-value pairs of a Form whose href uses the modbus+tcp URI scheme.
+      Every other Form term is defined by the Thing Description specification.
+    class_uri: hctl:Form
+    tree_root: true
+    slots:
+      - pollingTime
+      - timeout
+      - mostSignificantByte
+      - mostSignificantWord
+      - zeroBasedAddressing
+      - payloadDataType
+      - entity
+      - function
+    comments:
+      - >-
+        When modv:entity and modv:function are both present, the value of modv:function should be ignored.
+        This is an interpretation rule for Consumers and is not enforced by the generated JSON Schema.
+
+slots:
+  # --- URL terms: encoded in href as modbus+tcp://{host}:{port}/{unitID}/{address}?quantity={quantity}
+
+  address:
+    description: Specifies the starting address of the Modbus operations. Between 0 and 65535
+    slot_uri: modv:hasAddress
+    range: unsignedShort
+    required: true
+    in_subset:
+      - url_terms
+
+  unitID:
+    description: >-
+      Sometimes also called the Slave or Server ID, the Unit ID is technically not needed for ModbusTCP,
+      since the IP-address works as unique identifier, but for compatibility reasons it MUST be included.
+      Mostly between 1 and 247 but 255 is technically possible
+    slot_uri: modv:hasUnitID
+    range: unsignedByte
+    required: true
+    in_subset:
+      - url_terms
+
+  quantity:
+    description: Specifies the amount of either registers or coils to be read or written to
+    slot_uri: modv:hasQuantity
+    range: unsignedShort
+    in_subset:
+      - url_terms
+    annotations:
+      spec_default: 1
+
+  # --- Form terms
+
+  pollingTime:
+    description: >-
+      Modbus TCP maximum polling rate. The Modbus specification does not define a maximum or minimum
+      allowed polling rate, however specific implementations might introduce such limits.
+      Defined as integer of milliseconds.
+    alias: modv:pollingTime
+    slot_uri: modv:hasPollingTime
+    range: unsignedInt
+    minimum_value: 0
+    in_subset:
+      - form_terms
+
+  timeout:
+    description: >-
+      Maximum waiting time for a response. Defines how much time the runtime should wait until it receives
+      a reply from the device. Defined as integer of milliseconds.
+    alias: modv:timeout
+    slot_uri: modv:hasTimeout
+    range: unsignedInt
+    minimum_value: 0
+    in_subset:
+      - form_terms
+    annotations:
+      spec_default: infinite
+
+  mostSignificantByte:
+    description: >-
+      When true, it describes that the byte order of the data in the Modbus message is the most
+      significant byte first (i.e., Big-Endian). When false, it describes the least significant byte first
+      (i.e., Little-Endian).
+    alias: modv:mostSignificantByte
+    slot_uri: modv:hasMostSignificantByte
+    range: boolean
+    in_subset:
+      - form_terms
+    annotations:
+      spec_default: true
+      spec_description: >-
+        When <code>true</code>, it describes that the byte order of the data in the Modbus message is the most
+        significant byte first (i.e., Big-Endian). When <code>false</code>, it describes the least significant
+        byte first (i.e., Little-Endian).
+
+  mostSignificantWord:
+    description: >-
+      When true, it describes that the word order of the data in the Modbus message is the most
+      significant word first (i.e., no word swapping). When false, it describes the least significant word
+      first (i.e. word swapping)
+    alias: modv:mostSignificantWord
+    slot_uri: modv:hasMostSignificantWord
+    range: boolean
+    in_subset:
+      - form_terms
+    annotations:
+      spec_default: true
+      spec_description: >-
+        When <code>true</code>, it describes that the word order of the data in the Modbus message is the most
+        significant word first (i.e., no word swapping). When <code>false</code>, it describes the least
+        significant word first (i.e. word swapping)
+
+  zeroBasedAddressing:
+    description: >-
+      DEPRECATED as TDs are expected to contain the address to be directly used by the Consumer
+      implementation. See also the relevant issue. Previous explanation: Modbus implementations can differ
+      in the way addressing works, as the first coil/register can be either referred to as true or false.
+      False when the first register starts at address 1.
+    deprecated: Deprecated. Please refrain from using.
+    alias: modv:zeroBasedAddressing
+    slot_uri: modv:hasZeroBasedAddressingFlag
+    range: boolean
+    in_subset:
+      - form_terms
+    see_also:
+      - https://github.com/w3c/wot-binding-templates/issues/187
+    annotations:
+      spec_default: false
+      spec_description: >-
+        DEPRECATED as TDs are expected to contain the address to be directly used by the Consumer
+        implementation. See also <a href="https://github.com/w3c/wot-binding-templates/issues/187">the relevant
+        issue</a>. Previous explanation: Modbus implementations can differ in the way addressing works, as the
+        first coil/register can be either referred to as <code>true</code> or <code>false</code>.
+        <code>False</code> when the first register starts at address 1.
+
+  # Named payloadDataType, not type: a LinkML slot called type already exists in jsonschema.yaml
+  # (DataSchema type), and the JSON-LD term type collides with the TD term (see the inventory, D-07).
+  payloadDataType:
+    description: >-
+      Specifies the data type contained in the request or response payload. Users can define the specific
+      data type using a sub type of xsd:decimal.
+    alias: modv:type
+    slot_uri: modv:hasPayloadDataType
+    range: PayloadDataType
+    in_subset:
+      - form_terms
+    annotations:
+      spec_description: >-
+        Specifies the data type contained in the request or response payload. Users can define the specific
+        data type using a sub type of <code>xsd:decimal</code>.
+
+  entity:
+    description: A registry type to let the runtime automatically detect the right function code
+    alias: modv:entity
+    slot_uri: modv:hasEntity
+    range: Entity
+    in_subset:
+      - form_terms
+
+  function:
+    description: Function Code sent by the master in every request. Specifying the desired interaction.
+    alias: modv:function
+    slot_uri: modv:hasFunction
+    range: Function
+    in_subset:
+      - form_terms
+
+enums:
+  Entity:
+    description: A Modbus registry type
+    enum_uri: modv:Entity
+    permissible_values:
+      Coil:
+        title: Coil
+        description: Represent a modbus coil register. These entities can be read or written
+        meaning: modv:Coil
+      DiscreteInput:
+        title: Discrete Input
+        description: Represent a modbus discrete input. These entities can only be read
+        meaning: modv:DiscreteInput
+      HoldingRegister:
+        title: Holding Register
+        description: Represent a modbus holding register. These entities can be read or written
+        meaning: modv:HoldingRegister
+      InputRegister:
+        title: Input Register
+        description: Represent a modbus input register. These entities can only be read
+        meaning: modv:InputRegister
+
+  Function:
+    description: >-
+      Function code identifies the operation requested by client, indicates to the server what kind of
+      action to perform. For a normal response, the server simply echoes to the request the original
+      function code.
+    enum_uri: modv:Function
+    permissible_values:
+      readCoil:
+        title: Read Single Coil
+        description: Read a single coil (i.e., boolean/bit access) value. Conventionally in the address range 00001-09999
+        meaning: modv:readCoil
+        annotations:
+          code_number: 1
+      readDeviceIdentification:
+        title: Read Device Identification
+        description: Read Device Identification for diagnostic purposes. Available in the majority of Modbus implementations.
+        meaning: modv:readDeviceIdentification
+        annotations:
+          code_number: 43
+      readDiscreteInput:
+        title: Read Discrete Inputs
+        description: Read Physical Discrete Inputs (bit access). Conventionally in the address range 10001-19999
+        meaning: modv:readDiscreteInput
+        annotations:
+          code_number: 2
+      readHoldingRegisters:
+        title: Read Multiple Holding Registers
+        description: Read Multiple Holding Registers (16 bit access). Conventionally in the address range 40001-49999
+        meaning: modv:readHoldingRegisters
+        annotations:
+          code_number: 3
+      readInputRegisters:
+        title: Read Multiple Input Registers
+        description: Read Multiple Physical Input Registers (16 bits). Conventionally in the address range 30001-39999
+        meaning: modv:readInputRegisters
+        annotations:
+          code_number: 4
+      writeSingleCoil:
+        title: Write Single Coil
+        description: Write Single Physical Coil (internal bit). Conventionally in the address range 00001-09999
+        meaning: modv:writeSingleCoil
+        annotations:
+          code_number: 5
+      writeMultipleCoils:
+        title: Write Multiple Coils
+        description: Write Multiple Physical Coils (internal bits). Conventionally in the address range 00001-09999
+        meaning: modv:writeMultipleCoils
+        annotations:
+          code_number: 15
+      writeMultipleHoldingRegisters:
+        title: Write Multiple Holding Registers
+        description: Write Multiple Holding Registers (output registers, 16 bit). Conventionally in the address range 40001-49999
+        meaning: modv:writeMultipleHoldingRegisters
+        annotations:
+          code_number: 16
+      writeSingleHoldingRegister:
+        title: Write Single Holding Register
+        description: Write Single HoldingRegister (internal bits). Conventionally in the address range 40001-49999
+        meaning: modv:writeSingleHoldingRegister
+        annotations:
+          code_number: 6
+      readFileRecord:
+        title: Read File Record
+        description: Read File Record that starts with the MBAP header and subsequently the actual file record
+        meaning: modv:readFileRecord
+        annotations:
+          code_number: 14
+
+  PayloadDataType:
+    description: >-
+      Represents the data types that can be used to define the payload content in Modbus messages.
+      The values are XML Schema datatypes written as compact IRIs.
+    enum_uri: modv:PayloadDataType
+    permissible_values:
+      xsd:integer:
+        meaning: xsd:integer
+      xsd:boolean:
+        meaning: xsd:boolean
+      xsd:string:
+        meaning: xsd:string
+      xsd:float:
+        meaning: xsd:float
+      xsd:decimal:
+        meaning: xsd:decimal
+      xsd:byte:
+        meaning: xsd:byte
+      xsd:short:
+        meaning: xsd:short
+      xsd:int:
+        meaning: xsd:int
+      xsd:long:
+        meaning: xsd:long
+      xsd:unsignedByte:
+        meaning: xsd:unsignedByte
+      xsd:unsignedShort:
+        meaning: xsd:unsignedShort
+      xsd:unsignedInt:
+        meaning: xsd:unsignedInt
+      xsd:unsignedLong:
+        meaning: xsd:unsignedLong
+      xsd:double:
+        meaning: xsd:double
+      xsd:hexBinary:
+        meaning: xsd:hexBinary
